@@ -28,11 +28,19 @@
   ## gRPC Maximum Message Size
   # max_msg_size = "4MB"
 
+  ## gRPC Depth Extension
+  ## See https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-depth.md
+  ## If specified, adds gNMI depth extension, which controls depth of the subtree to be returned in the response.
+  # depth = -1
+
   ## Enable to get the canonical path as field-name
   # canonical_field_names = false
 
   ## Remove leading slashes and dots in field-name
   # trim_field_names = false
+
+  ## An optional field to specify that only updates to current state should be sent to a client.
+  # updates_only = false
 
   ## Guess the path-tag if an update does not contain a prefix-path
   ## Supported values are

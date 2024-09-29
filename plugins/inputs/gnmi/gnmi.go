@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/gnxi/utils/xpath"
 	gnmiLib "github.com/openconfig/gnmi/proto/gnmi"
+	gnmiExt "github.com/openconfig/gnmi/proto/gnmi_ext"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 
@@ -54,6 +55,7 @@ type GNMI struct {
 	Password             config.Secret     `toml:"password"`
 	Redial               config.Duration   `toml:"redial"`
 	MaxMsgSize           config.Size       `toml:"max_msg_size"`
+	Depth                int32             `toml:"depth"`
 	Trace                bool              `toml:"dump_responses"`
 	CanonicalFieldNames  bool              `toml:"canonical_field_names"`
 	TrimFieldNames       bool              `toml:"trim_field_names"`
@@ -72,6 +74,8 @@ type GNMI struct {
 	decoder         *yangmodel.Decoder
 	cancel          context.CancelFunc
 	wg              sync.WaitGroup
+
+	extensions []*gnmiExt.Extension
 }
 
 // Subscription for a gNMI client
@@ -88,7 +92,7 @@ type Subscription struct {
 	fullPath *gnmiLib.Path
 }
 
-// Tag Subscription for a gNMI client
+// TagSubscription for a gNMI client
 type TagSubscription struct {
 	Subscription
 	Match    string   `toml:"match"`
@@ -229,6 +233,18 @@ func (c *GNMI) Init() error {
 			return fmt.Errorf("creating YANG model decoder failed: %w", err)
 		}
 		c.decoder = decoder
+	}
+
+	if c.Depth >= 0 {
+		c.extensions = []*gnmiExt.Extension{
+			{
+				Ext: &gnmiExt.Extension_Depth{
+					Depth: &gnmiExt.Depth{
+						Level: uint32(c.Depth),
+					},
+				},
+			},
+		}
 	}
 
 	return nil
@@ -373,6 +389,7 @@ func (c *GNMI) newSubscribeRequest() (*gnmiLib.SubscribeRequest, error) {
 				UpdatesOnly:  c.UpdatesOnly,
 			},
 		},
+		Extension: c.extensions,
 	}, nil
 }
 
@@ -402,6 +419,7 @@ func New() telegraf.Input {
 	return &GNMI{
 		Encoding: "proto",
 		Redial:   config.Duration(10 * time.Second),
+		Depth:    -1,
 	}
 }
 
